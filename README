@@ -1,0 +1,89 @@
+Olivia Houghton
+CS371
+Programming Assigmnet 2
+README
+
+INSTRUCTIONS
+---------------------------
+Please compile/link the attached program with the "make" command. 
+
+Please run the program like so: ipforward routing_table ip_packets ip_packets_out
+
+SUMMARY
+---------------------------
+The attached program implements a forwarding process used in routers. 
+When provided with a routing table, a file containing packets, and a
+file to send output to, this program prints out the source IP, 
+destination IP, and packet length. 
+
+The TTL field is checked and, if it is 1, it is then decremented to 0
+and the packet is discarded. The checksum is also calculated, and if
+it does not match the checksum noted in the packet, the packet is 
+discarded. In both instances, the condition of failure is printed. 
+
+If failure does not occur, the packet (with TTL and checksum fields updated)
+is written to the output file.
+
+LIMITATIONS
+--------------------------
+In the instance that the routing table has multiple masks with the same
+length, and the destination IP matches with the prefixes linked
+to all of them, the last one is used. 
+
+The program has not been tested on machines which use Big-Endian byte
+order and may not perform appropriately on them. Caution has been
+taken not to rely on a specific host byte order, however, and so
+it may very well run properly on such machines. Multilab machines 
+appear to use Little-Endian byte order and so should have no issue
+(the program ran fine on my multilab machine). 
+
+DETAILS OF IMPLEMENTATION
+---------------------------
+Several functions are used in this program:
+
+decform() converts an unsigned 32-bit IP address into dotted-decimal
+string format
+
+lpmatch() takes an unsigned 32-bit IP address, a vector of unsigned 
+32-bit IP address "prefixes" and a vector of unsigned 32-bit "masks",
+then finds the longest match (by counting up the mask size whenever
+a match is found) and returns the vector index that that match 
+occurred at
+
+get_checksum() takes a vector of unsigned 16-bit integers and sums them,
+carrying over any overflow back to the LSB if necessary, then negates
+the final sum and returns it
+
+In the main function, all files are opened, and if any of them fail to
+open, execution ends without side effects and the user is told of the
+failure. If the files open successfully, then the routing table is 
+scanned, with all entries in the first column going into a network id
+vector, all entires in the second column going in a mask vector, and
+all entires int he third column going in a nexthop vector. 
+
+After this, the packets file is read and each 16 bits (except for the
+checksum) of the header are read into a vector that will be used to 
+calculate the checksum. Each chunk is converted to host byte order
+Relevant items -- the datagram length, TTL, packet checksum and 
+IP addresses -- are recorded. 
+
+The source and destination IPs are recorded in network byte order, 
+but printed in network byte order after being converted to dotted
+decimal format with decform(). The packet length is also printed. 
+
+The checksum is then calculated. If the TTL is not 0 after being 
+decremented and the calculated checksum matches the packet checksum,
+then the program looks up the next hop address with lpmatch(), prints
+it and writes out all the recorded chunks (after converting them back
+to network byte order) plus the checksum (also converted) to the 
+output file. This forms the output header. 
+
+After this, the datagram length is checked to see how much data to read
+from the packets file and output to the output file, and the data
+is written appropriately. In the instance that the checksum or TTL
+checks are not passed, then nothing is written to the output file and
+the program reads past all the packet data. 
+
+After all this, getc() and ungetc() are used to check for EOF. We loop
+over the process for the packets file until we hit EOF. After this, 
+the relevant file pointers are closed and execution ends. 
